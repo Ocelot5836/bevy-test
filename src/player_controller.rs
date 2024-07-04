@@ -4,7 +4,7 @@ use bevy::app::{App, Plugin, Update};
 use bevy::input::ButtonInput;
 use bevy::input::mouse::MouseMotion;
 use bevy::math::{Quat, Vec3};
-use bevy::prelude::{Component, EventReader, KeyCode, MouseButton, Query, Res, Time, Transform, Window, With};
+use bevy::prelude::{Children, Component, EventReader, KeyCode, MouseButton, Query, Res, Time, Transform, Window, With};
 use bevy::window::CursorGrabMode;
 
 use crate::physics::Velocity;
@@ -29,16 +29,15 @@ impl Plugin for PlayerControllerPlugin {
 fn rotate_camera(
     mut windows: Query<&mut Window>,
     mut mouse_motion: EventReader<MouseMotion>,
-    mut rotation: Query<&mut CameraRotation, With<Player>>,
-    mut transform: Query<&mut Transform, With<Player>>,
+    mut player: Query<(&mut CameraRotation, &Children), With<Player>>,
+    mut transform: Query<&mut Transform>,
 ) {
     let window = windows.single_mut();
     if window.cursor.visible {
         return;
     }
 
-    let mut rotation = rotation.single_mut();
-    let mut transform = transform.single_mut();
+    let (mut rotation, children) = player.single_mut();
     for motion in mouse_motion.read() {
         const SENSITIVITY: f32 = 4.0;
         let yaw = motion.delta.x * 0.002 * SENSITIVITY;
@@ -50,9 +49,12 @@ fn rotate_camera(
     rotation.pitch = num::clamp(rotation.pitch, -PI / 2.0, PI / 2.0);
 
     // Order of rotations is important, see <https://gamedev.stackexchange.com/a/136175/103059s
-    transform.rotation = Quat::default();
-    transform.rotate_y(rotation.yaw);
-    transform.rotate_local_x(rotation.pitch);
+    for &child in children {
+        let mut transform = transform.get_mut(child).unwrap();
+        transform.rotation = Quat::IDENTITY;
+        transform.rotate_y(rotation.yaw);
+        transform.rotate_local_x(rotation.pitch);
+    }
 }
 
 fn grab_mouse(

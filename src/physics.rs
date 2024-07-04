@@ -1,14 +1,15 @@
 use bevy::app::{App, Plugin, Update};
 use bevy::math::Vec3;
 use bevy::prelude::{Component, Query, Res, Resource, Time, Transform};
-use bevy_inspector_egui::InspectorOptions;
 
+use crate::voxel_mesher::ClientWorld;
+use crate::world::BlockGetter;
 #[derive(Debug)]
 pub struct PhysicsPlugin {
     pub gravity: f32,
 }
 
-#[derive(Default, Debug, Component, InspectorOptions)]
+#[derive(Default, Debug, Component)]
 pub struct Velocity(pub Vec3);
 
 #[derive(Debug, Resource)]
@@ -35,6 +36,7 @@ impl Default for PhysicsPlugin {
 
 fn apply_velocity(
     settings: Res<PhysicsSettings>,
+    world: Res<ClientWorld>,
     time: Res<Time>,
     mut transforms: Query<(&mut Transform, &mut Velocity)>) {
     let delta = time.delta().as_millis() as f32 / 1_000.0;
